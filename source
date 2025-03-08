@@ -1,0 +1,135 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local CurrentRooms = workspace:FindFirstChild("CurrentRooms")
+if not CurrentRooms then return end
+local RoomStorage = Instance.new("Folder", ReplicatedStorage)
+local ClonedRooms = {}
+RoomStorage.Name = "RoomStorage"
+local CanCollect, KeybindCooldown = true, false
+
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+local ScreenGui = Instance.new("ScreenGui", Player.PlayerGui)
+ScreenGui.DisplayOrder = 100
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+ScreenGui.ClipToDeviceSafeArea = false
+
+local List = Instance.new("Frame", ScreenGui)
+List.BackgroundTransparency = 1
+List.AnchorPoint = Vector2.new(1, 1)
+List.Position = UDim2.new(1, -20, 1, -20)
+List.Size = UDim2.new(0, 300, 0, 800)
+
+local ListLayout = Instance.new("UIListLayout", List)
+ListLayout.Padding = UDim.new(0, 8)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+
+local Info = Instance.new("Frame", List)
+Info.BackgroundTransparency = 0.45
+Info.BackgroundColor3 = Color3.new(0.098, 0.098, 0.098)
+Info.AnchorPoint = Vector2.new(0, 0)
+Info.Size = UDim2.new(1, 0, 0, 61)
+Info.LayoutOrder = 3
+local UICorner = Instance.new("UICorner", Info)
+UICorner.CornerRadius = UDim.new(0, 20)
+
+local Icon = Instance.new("ImageLabel", Info)
+Icon.Name = "Icon"
+Icon.BackgroundTransparency = 1
+Icon.AnchorPoint = Vector2.new(0, 0.5)
+Icon.Size = UDim2.new(0, 32, 0, 32)
+Icon.Position = UDim2.new(0, 20, 0.5, 0)
+Icon.Image = "rbxassetid://16898613353"
+Icon.ImageRectOffset = Vector2.new(453, 869)
+Icon.ImageRectSize = Vector2.new(48, 48)
+Icon.ScaleType = Enum.ScaleType.Stretch
+
+local Shadow = Instance.new("ImageLabel", Info)
+Shadow.Name = "Shadow"
+Shadow.BackgroundTransparency = 1
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.Size = UDim2.new(1.111, 0, 1.922, 0)
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Shadow.Image = "rbxassetid://3523728077"
+Shadow.ImageColor3 = Color3.new(0.129, 0.129, 0.129)
+Shadow.ImageTransparency = 0.82
+Shadow.ScaleType = Enum.ScaleType.Stretch
+
+local StatusText = Instance.new("TextLabel", Info)
+StatusText.Name = "Title"
+StatusText.Text = "Waiting for rooms"
+StatusText.FontFace = Font.fromId(12187365364, Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+StatusText.TextColor3 = Color3.new(1, 1, 1)
+StatusText.TextScaled = true
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.TextYAlignment = Enum.TextYAlignment.Center
+StatusText.ZIndex = 105
+StatusText.AnchorPoint = Vector2.new(0, 0)
+StatusText.Size = UDim2.new(1, -80, 0, 16)
+StatusText.Position = UDim2.new(0, 70, 0, 15)
+StatusText.BackgroundTransparency = 1
+
+local CounterText = Instance.new("TextLabel", Info)
+CounterText.Name = "Description"
+CounterText.Text = "0 collected rooms"
+CounterText.FontFace = Font.fromId(12187365364, Enum.FontWeight.Medium, Enum.FontStyle.Normal)
+CounterText.TextColor3 = Color3.new(1, 1, 1)
+CounterText.TextTransparency = 0.35
+CounterText.TextSize = 15
+CounterText.TextXAlignment = Enum.TextXAlignment.Left
+CounterText.TextYAlignment = Enum.TextYAlignment.Top
+CounterText.ZIndex = 105
+CounterText.AnchorPoint = Vector2.new(0, 0)
+CounterText.Size = UDim2.new(1, -80, 1, -40)
+CounterText.Position = UDim2.new(0, 70, 0, 32)
+CounterText.BackgroundTransparency = 1
+
+Humanoid.Touched:Connect(function(Hit)
+	if not (Hit.Parent:IsA("Model") and Hit:IsDescendantOf(CurrentRooms) and CanCollect) then return end
+
+	local RoomName = Hit.Parent.Name
+	if ClonedRooms[RoomName] then return end
+
+	ClonedRooms[RoomName] = true
+	local Room = Hit.Parent:Clone()
+	Room.Parent = RoomStorage
+end)
+
+local function UpdateCounter()
+	local count = #RoomStorage:GetChildren()
+	CounterText.Text = count.." rooms collected"
+end
+
+RoomStorage.ChildAdded:Connect(UpdateCounter)
+RoomStorage.ChildRemoved:Connect(function()
+	UpdateCounter()
+	ClonedRooms = {}
+end)
+
+UserInputService.InputBegan:Connect(function(inputObject, isTyping)
+	if isTyping or KeybindCooldown then return end
+
+	if inputObject.KeyCode == Enum.KeyCode.Insert then
+		CanCollect = not CanCollect
+		StatusText.Text = CanCollect and "Waiting for rooms" or "Paused"
+		CounterText.Text = CanCollect and (#RoomStorage:GetChildren().." collected rooms") or "Press END to unpause"
+		saveinstance(RoomStorage)
+		
+	elseif inputObject.KeyCode == Enum.KeyCode.End then
+		CanCollect = not CanCollect
+		StatusText.Text = CanCollect and "Waiting for rooms" or "Paused"
+		CounterText.Text = CanCollect and (#RoomStorage:GetChildren().." collected rooms") or "Press END to unpause"
+
+	elseif inputObject.KeyCode == Enum.KeyCode.Delete then
+		RoomStorage:ClearAllChildren()
+		StatusText.Text = "Cleared folder"
+	end
+end)
