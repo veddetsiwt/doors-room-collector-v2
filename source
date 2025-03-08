@@ -93,7 +93,7 @@ CounterText.Position = UDim2.new(0, 70, 0, 32)
 CounterText.BackgroundTransparency = 1
 
 Humanoid.Touched:Connect(function(Hit)
-	if not (Hit.Parent:IsA("Model") and Hit:IsDescendantOf(CurrentRooms) and CanCollect) then return end
+	if not (Hit.Name == "RoomEntrance" and Hit.Parent:IsA("Model") and Hit:IsDescendantOf(CurrentRooms) and CanCollect) then return end
 
 	local RoomName = Hit.Parent.Name
 	if ClonedRooms[RoomName] then return end
@@ -101,11 +101,11 @@ Humanoid.Touched:Connect(function(Hit)
 	ClonedRooms[RoomName] = true
 	local Room = Hit.Parent:Clone()
 	Room.Parent = RoomStorage
+	StatusText.Text = "Collected " .. Room.Name
 end)
 
 local function UpdateCounter()
-	local count = #RoomStorage:GetChildren()
-	CounterText.Text = count.." rooms collected"
+	CounterText.Text = #RoomStorage:GetChildren().." rooms collected"
 end
 
 RoomStorage.ChildAdded:Connect(UpdateCounter)
@@ -118,9 +118,9 @@ UserInputService.InputBegan:Connect(function(inputObject, isTyping)
 	if isTyping or KeybindCooldown then return end
 
 	if inputObject.KeyCode == Enum.KeyCode.Insert then
-		CanCollect = not CanCollect
-		StatusText.Text = CanCollect and "Waiting for rooms" or "Paused"
-		CounterText.Text = CanCollect and (#RoomStorage:GetChildren().." collected rooms") or "Press END to unpause"
+		CanCollect = false
+		StatusText.Text = "Saving ".. #RoomStorage:GetChildren().." rooms"
+		CounterText.Text = "Press END to unpause"
 		saveinstance(RoomStorage)
 		
 	elseif inputObject.KeyCode == Enum.KeyCode.End then
